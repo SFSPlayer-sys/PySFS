@@ -62,6 +62,9 @@ velocity = sfs.calc_api.rocket_velocity_magnitude()
 print(f"Altitude: {altitude}m")
 print(f"Longitude: {longitude}°")
 print(f"Velocity: {velocity}m/s")
+
+# Take screenshot
+screenshot_data = sfs.screenshot()  # Returns bytes
 ```
 
 ### Simple Example: Get Rocket Longitude
@@ -129,10 +132,40 @@ sfs.remove_stage(index)                   # Remove stage
 sfs.set_orbit(radius, eccentricity, true_anomaly, counterclockwise, planet_code)
 sfs.set_state(x, y, vx, vy, angular_velocity, blueprint_json)
 
+# Fuel Management
+sfs.transfer_fuel(from_tank_id, to_tank_id)  # Transfer fuel between tanks
+sfs.stop_fuel_transfer()                     # Stop fuel transfer
+
+# Vehicle Control
+sfs.wheel_control(enable=True, turn_axis=0.5)  # Control wheels
+
+# Time & Map Control
+sfs.set_timewarp(speed=5.0, realtime_physics=False, show_message=True)  # Set time warp
+sfs.timewarp_plus()                          # Increase time warp
+sfs.timewarp_minus()                         # Decrease time warp
+sfs.switch_map_view(on=True)                 # Switch map view
+sfs.track("Moon")                            # Track object
+sfs.unfocus()                                # Stop tracking
+
+# Game Management
+sfs.set_cheat("InfiniteFuel", True)          # Enable/disable cheats
+sfs.revert("Launch")                         # Revert to launch/VAB
+sfs.complete_challenge("challenge_id")       # Complete challenge
+sfs.wait_for_window("Apoapsis", 100.0)       # Wait for orbital window
+sfs.show_toast("Message")                    # Show toast notification
+sfs.log_message("Info", "Log message")       # Log message
+sfs.quicksave_manager("Save", "SaveName")    # Manage quicksaves
+sfs.set_map_icon_color("#FF0000")            # Set rocket map icon color
+
+# Information Queries
+sfs.get_rocket_info()                        # Get rocket information
+sfs.get_rocket_list()                        # Get list of rockets
+sfs.get_world_info()                         # Get world information
+
 # Custom Commands
-sfs.control("MethodName", arg1, arg2)     # Direct method call
-sfs.call("MethodName", [arg1, arg2])      # Call with args list
-sfs.custom("MethodName", arg1, arg2)      # Custom method call
+sfs.control("MethodName", arg1, arg2)        # Direct method call
+sfs.call("MethodName", [arg1, arg2])         # Call with args list
+sfs.custom("MethodName", arg1, arg2)         # Custom method call
 ```
 
 ### Information Retrieval
@@ -268,6 +301,25 @@ sfs = SFSClient(timeout_seconds=30.0)
 import requests
 session = requests.Session()
 sfs = SFSClient(session=session)
+
+# Access connection properties
+print(f"Host: {sfs.host}")
+print(f"Port: {sfs.port}")
+print(f"Base URL: {sfs.http.base_url}")
+
+# Change connection settings
+sfs.host = "192.168.1.200"
+sfs.port = 27773
+```
+
+### HTTP Methods
+
+```python
+# Low-level HTTP access
+data = sfs.http.get_json("/rocket_sim")                    # GET request
+result = sfs.http.post_json("/control", {"method": "Stage"})  # POST request
+screenshot_bytes = sfs.http.screenshot()                   # Get screenshot
+screenshot_bytes = sfs.screenshot()                        # Shortcut method
 ```
 
 ### Multi-Rocket Control
