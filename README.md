@@ -327,32 +327,12 @@ screenshot_bytes = sfs.screenshot()                        # Shortcut method
 ```python
 # Control specific rocket
 sfs.set_throttle(1.0, rocket="Rocket1")
-sfs.rotate("Prograde", rocket="Rocket1")
+sfs.rotate("Prograde", rocket="Rocket2")
 
 # Get data for specific rocket
 altitude = sfs.values_api.rocket_altitude(rocket="Rocket1")
 ```
 
-## Error Handling
 
-```python
-try:
-    sfs = SFSClient()
-    altitude = sfs.values_api.rocket_altitude()
-    
-except requests.ConnectionError:
-    print("Cannot connect to SFS. Make sure SFSControl mod is running.")
-    
-except requests.Timeout:
-    print("Request timed out. SFS may be unresponsive.")
-    
-except Exception as e:
-    print(f"Unexpected error: {e}")
-```
-
-## SFSControl Mod Setup
-
-1. Install the SFSControl mod in Spaceflight Simulator
-2. Launch SFS and load a world with rockets
-3. The mod will start an HTTP server on `localhost:27772`
-4. Use PySFS to connect and control your rockets
+Server download link [SFSControl](https://github.com/SFSPlayer-sys/SFSControl).
+Example script link [Scripts](https://github.com/SFSPlayer-sys/SFSControl-_-Scripts ).
