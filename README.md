@@ -87,25 +87,52 @@ print(lon)
 ### Control Commands
 
 ```python
+# Basic Control
+sfs.set_throttle(0.75)                    # Set throttle (0.0-1.0)
+sfs.set_main_engine_on(True)              # Engine on/off
+sfs.set_rcs(True)                         # RCS on/off
+sfs.stage()                               # Next stage
+sfs.use_part(part_id)                     # Activate specific part
+
 # Rotation Control
-sfs.rotate("Prograde")          # Prograde direction
-sfs.rotate("Surface")           # Radial direction  
-sfs.rotate("Target")            # Point to target
-sfs.rotate(90.0)                # Custom angle (degrees)
-sfs.rotate("Prograde", 180.0)   # Retrograde (prograde + 180°)
+sfs.rotate("Prograde")                    # Prograde direction
+sfs.rotate("Surface")                     # Radial direction  
+sfs.rotate("Target")                      # Point to target
+sfs.rotate("None")                        # Disable rotation control
+sfs.rotate("Default")                     # Disable SAS
+sfs.rotate(90.0)                          # Custom angle (degrees)
+sfs.rotate("Prograde", 180.0)             # Retrograde (prograde + 180°)
+sfs.stop_rotate()                         # Stop rotation
+sfs.set_rotation(45.0)                    # Set rotation angle
+sfs.rcs_thrust("up", 2.0)                 # RCS thrust in direction for seconds
 
-# Engine Control
-sfs.set_throttle(0.75)          # 75% throttle
-sfs.set_main_engine_on(True)    # Engine on/off
-sfs.set_rcs(True)               # RCS on/off
+# Navigation & Targets
+sfs.set_target("Moon")                    # Set target
+sfs.clear_target()                        # Clear target
 
-# Staging & Parts
-sfs.stage()                     # Next stage
-sfs.use_part(part_id)           # Activate specific part
+# Rocket Management
+sfs.launch()                              # Launch rocket
+sfs.switch_rocket("Rocket1")              # Switch to rocket
+sfs.rename_rocket("Rocket1", "NewName")   # Rename rocket
+sfs.delete_rocket("Rocket1")              # Delete rocket
+sfs.create_rocket("Earth", blueprint_json, "RocketName", x, y, vx, vy, vr)
 
-# Navigation
-sfs.set_target("Moon")          # Set target
-sfs.clear_target()              # Clear target
+# Scene Management
+sfs.build(blueprint_info)                 # Build from blueprint
+sfs.clear_blueprint()                     # Clear blueprint
+sfs.switch_to_build()                     # Switch to build scene
+sfs.clear_debris()                        # Clear debris
+
+# Advanced Control
+sfs.add_stage(index, part_ids)            # Add stage
+sfs.remove_stage(index)                   # Remove stage
+sfs.set_orbit(radius, eccentricity, true_anomaly, counterclockwise, planet_code)
+sfs.set_state(x, y, vx, vy, angular_velocity, blueprint_json)
+
+# Custom Commands
+sfs.control("MethodName", arg1, arg2)     # Direct method call
+sfs.call("MethodName", [arg1, arg2])      # Call with args list
+sfs.custom("MethodName", arg1, arg2)      # Custom method call
 ```
 
 ### Information Retrieval
@@ -120,58 +147,106 @@ rockets = sfs.info_api.rockets()               # All rockets
 planet = sfs.info_api.planet("Earth")          # Specific planet
 planets = sfs.info_api.planets()               # All planets
 
-# Mission Data
+# Other Data
+other = sfs.info_api.other()                   # Miscellaneous info
 mission = sfs.info_api.mission()               # Mission info
+debug_log = sfs.info_api.debug_log()           # Debug log
 version = sfs.info_api.version()               # Mod version (returns {"name": "SFSControl", "version": "1.2"})
 ```
 
 ### Direct Value Access
 
 ```python
-# Position & Motion
-altitude = sfs.values_api.rocket_altitude()
-longitude = sfs.values_api.rocket_longitude()
-position = sfs.values_api.rocket_position()
-rotation = sfs.values_api.rocket_rotation()
+# Basic Rocket Info
+name = sfs.values_api.rocket_name()                  # Rocket name
+rocket_id = sfs.values_api.rocket_id()               # Rocket ID
 
-# Orbital Elements
-orbit = sfs.values_api.rocket_orbit()
-apoapsis = sfs.values_api.rocket_orbit_apoapsis()
-periapsis = sfs.values_api.rocket_orbit_periapsis()
-period = sfs.values_api.rocket_orbit_period()
+# Position & Motion
+altitude = sfs.values_api.rocket_altitude()          # Altitude above surface
+longitude = sfs.values_api.rocket_longitude()        # Longitude (0-360°)
+position = sfs.values_api.rocket_position()          # Position {x, y}
+rotation = sfs.values_api.rocket_rotation()          # Rotation angle
+angular_velocity = sfs.values_api.rocket_angular_velocity()  # Angular velocity
 
 # Control Status
-throttle = sfs.values_api.rocket_throttle()
-rcs_status = sfs.values_api.rocket_rcs_on()
+throttle = sfs.values_api.rocket_throttle()          # Throttle (0.0-1.0)
+rcs_status = sfs.values_api.rocket_rcs_on()          # RCS on/off
+
+# Orbital Elements
+orbit = sfs.values_api.rocket_orbit()                # Full orbit data
+apoapsis = sfs.values_api.rocket_orbit_apoapsis()    # Apoapsis altitude
+periapsis = sfs.values_api.rocket_orbit_periapsis()  # Periapsis altitude
+period = sfs.values_api.rocket_orbit_period()        # Orbital period
+true_anomaly = sfs.values_api.rocket_orbit_true_anomaly()  # True anomaly
+parent_planet = sfs.values_api.rocket_parent_planet_code()  # Current planet
+
+# Other Rocket Data
+target_angle = sfs.values_api.other_target_angle()   # Target angle
+quicksaves = sfs.values_api.other_quicksaves()       # Quicksave list
+nav_target = sfs.values_api.other_nav_target()       # Navigation target
+timewarp_speed = sfs.values_api.other_timewarp_speed()  # Time warp speed
+world_time = sfs.values_api.other_world_time()       # World time
+scene_name = sfs.values_api.other_scene_name()       # Current scene
+mass = sfs.values_api.other_mass()                   # Rocket mass
+thrust = sfs.values_api.other_thrust()               # Current thrust
+max_thrust = sfs.values_api.other_max_thrust()       # Maximum thrust
+twr = sfs.values_api.other_twr()                     # Thrust-to-weight ratio
+dist_to_apoapsis = sfs.values_api.other_dist_to_apoapsis()    # Distance to apoapsis
+dist_to_periapsis = sfs.values_api.other_dist_to_periapsis()  # Distance to periapsis
+time_to_apoapsis = sfs.values_api.other_time_to_apoapsis()    # Time to apoapsis
+time_to_periapsis = sfs.values_api.other_time_to_periapsis()  # Time to periapsis
+transfer_window_delta_v = sfs.values_api.other_transfer_window_delta_v()  # Transfer window ΔV
+mission_status = sfs.values_api.other_mission_status()        # Mission status
+inertia_info = sfs.values_api.other_inertia_info()           # Inertia information
 
 # Planet Properties
-planet_radius = sfs.values_api.planet_radius("Earth")
-planet_gravity = sfs.values_api.planet_gravity("Earth")
+planet_radius = sfs.values_api.planet_radius("Earth")        # Planet radius
+planet_gravity = sfs.values_api.planet_gravity("Earth")      # Surface gravity
+planet_soi = sfs.values_api.planet_soi("Earth")              # Sphere of influence
+has_atmosphere = sfs.values_api.planet_has_atmosphere("Earth")  # Has atmosphere
+atmosphere_height = sfs.values_api.planet_atmosphere_height("Earth")  # Atmosphere height
+planet_parent = sfs.values_api.planet_parent("Moon")         # Parent planet
+planet_orbit = sfs.values_api.planet_orbit("Earth")          # Planet orbit data
+planet_eccentricity = sfs.values_api.planet_orbit_eccentricity("Earth")  # Orbit eccentricity
+planet_semi_major_axis = sfs.values_api.planet_orbit_semi_major_axis("Earth")  # Semi-major axis
+planet_argument_of_periapsis = sfs.values_api.planet_orbit_argument_of_periapsis("Earth")  # Argument of periapsis
+planet_current_true_anomaly = sfs.values_api.planet_orbit_current_true_anomaly("Earth")  # Current true anomaly
+planet_current_radius = sfs.values_api.planet_orbit_current_radius("Earth")  # Current orbital radius
+planet_current_velocity = sfs.values_api.planet_orbit_current_velocity("Earth")  # Current orbital velocity
 
 # Mod Information
-mod_version = sfs.values_api.sfscontrol_version()    # "1.2"
-mod_name = sfs.values_api.sfscontrol_name()          # "SFSControl"
+mod_version = sfs.values_api.sfscontrol_version()     # "1.2"
+mod_name = sfs.values_api.sfscontrol_name()           # "SFSControl"
+mod_full_info = sfs.values_api.sfscontrol_full_info() # Full version info
 ```
 
 ### Calculations
 
 ```python
 # Velocity Analysis
-velocity_info = sfs.calc_api.rocket_velocity_info()
-velocity_magnitude = sfs.calc_api.rocket_velocity_magnitude()
-velocity_direction = sfs.calc_api.rocket_velocity_direction()
+velocity_magnitude = sfs.calc_api.rocket_velocity_magnitude()     # Speed (m/s)
+velocity_direction = sfs.calc_api.rocket_velocity_direction()     # Direction (degrees)
+velocity_components = sfs.calc_api.rocket_velocity_components()   # {vx, vy}
+velocity_info = sfs.calc_api.rocket_velocity_info()              # Complete velocity info
+
+# Orbital Calculations
+orbit_period = sfs.calc_api.rocket_orbit_period()                # Orbital period (seconds)
+orbit_info = sfs.calc_api.rocket_orbit_info()                    # Complete orbital info
+
+# Angle Calculations
+normal_angle = sfs.calc_api.rocket_normal_angle()                # Normal angle (degrees)
+position_angle = sfs.calc_api.rocket_position_angle()            # Position angle (degrees)
+angle_info = sfs.calc_api.rocket_angle_info()                    # Complete angle info
 
 # Trajectory Prediction
 impact_point = sfs.calc_api.impact_point(
-    rocket_x=x, rocket_y=y,
-    vel_x=vx, vel_y=vy, 
-    planet_radius=radius,
-    gravity=gravity
-)
-
-# Orbital Mechanics
-orbit_info = sfs.calc_api.rocket_orbit_info()
-angle_info = sfs.calc_api.rocket_angle_info()
+    rocket_x=x, rocket_y=y,        # Current position
+    vel_x=vx, vel_y=vy,            # Current velocity
+    planet_radius=radius,          # Planet radius
+    gravity=gravity,               # Surface gravity
+    dt=0.02,                       # Time step (optional)
+    max_steps=100000               # Max simulation steps (optional)
+)  # Returns {"x": impact_x, "y": impact_y} or None
 ```
 
 
@@ -229,46 +304,3 @@ except Exception as e:
 2. Launch SFS and load a world with rockets
 3. The mod will start an HTTP server on `localhost:27772`
 4. Use PySFS to connect and control your rockets
-
-## Supported Rotation Modes
-
-- `"Prograde"` - Velocity direction
-- `"Surface"` - Radial direction (towards surface)
-- `"Target"` - Point towards selected target  
-- `"None"` - Disable rotation control
-- `"Default"` - Disable SAS
-- Custom angles: `90.0`, `180.0`, etc.
-
-## Planet Codes
-
-- `"Earth"` - Earth
-- `"Moon"` - Moon  
-- `"Mars"` - Mars
-- `"Phobos"` - Phobos
-- `"Deimos"` - Deimos
-- And more...
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues and pull requests.
-
-## License
-
-This project is licensed under the MIT License.
-
-## Acknowledgments
-
-- SFSControl mod developers for providing the HTTP API
-- Spaceflight Simulator community
-- Contributors and testers
-
-## Related Repositories
-
-- **PySFS Library**: [https://github.com/SFSPlayer-sys/PySFS](https://github.com/SFSPlayer-sys/PySFS) - The main PySFS library repository
-- **SFSControl Scripts**: [https://github.com/SFSPlayer-sys/SFSControl-_-Scripts](https://github.com/SFSPlayer-sys/SFSControl-_-Scripts) - Collection of scripts using PySFS
-- **SFSControl Mod**: [https://github.com/SFSPlayer-sys/SFSControl](https://github.com/SFSPlayer-sys/SFSControl) - The SFSControl mod for Spaceflight Simulator
-
-## Links
-
-- [Spaceflight Simulator](https://spaceflight-simulator.fandom.com/)
-- [SFS Community](https://www.reddit.com/r/SpaceflightSimulator/)
