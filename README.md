@@ -65,6 +65,10 @@ print(f"Velocity: {velocity}m/s")
 
 # Take screenshot
 screenshot_data = sfs.screenshot()  # Returns bytes
+
+# Draw visualization
+sfs.draw_api.clear()  # Clear previous drawings
+sfs.draw_api.circle(center=(0, 0), radius=100, color=[1.0, 0.0, 0.0, 1.0])  # Red circle
 ```
 
 ### Simple Example: Get Rocket Longitude
@@ -86,6 +90,7 @@ print(lon)
 - **`InfoAPI`**: Information retrieval endpoints
 - **`ValuesAPI`**: Direct value extraction
 - **`CalcAPI`**: Calculation and prediction tools
+- **`DrawAPI`**: Drawing and visualization tools
 
 ### Control Commands
 
@@ -282,6 +287,208 @@ impact_point = sfs.calc_api.impact_point(
 )  # Returns {"x": impact_x, "y": impact_y} or None
 ```
 
+### Drawing API
+
+The DrawAPI provides powerful visualization capabilities for drawing geometric shapes and lines in the SFS world. All coordinates are in world coordinates (not screen coordinates), and colors are specified as [r,g,b,a] with values from 0.0 to 1.0.
+
+```python
+# Access the drawing API
+draw = sfs.draw_api
+
+# Clear all drawn objects
+draw.clear()
+
+# Basic Drawing Functions
+
+# Draw a line between two points
+draw.line(
+    start=(100, 200),              # Start point (x, y) or (x, y, z)
+    end=(300, 400),                # End point (x, y) or (x, y, z)
+    color=[1.0, 0.0, 0.0, 1.0],   # Red color [r,g,b,a]
+    width=2.0,                     # Line width (optional)
+    sorting=0.0,                   # Drawing order (optional)
+    layer=0.0                      # Layer depth (optional)
+)
+
+# Draw a circle (outline only)
+draw.circle(
+    center=(500, 300),             # Center point (x, y)
+    radius=50.0,                   # Circle radius
+    color=[0.0, 1.0, 0.0, 1.0],   # Green color [r,g,b,a]
+    resolution=32,                 # Circle smoothness (min 8, optional)
+    sorting=0.0,                   # Drawing order (optional)
+    layer=0.0                      # Layer depth (optional)
+)
+
+# Draw a regular polygon (outline)
+draw.regular_polygon(
+    center=(200, 200),             # Center point (x, y)
+    radius=75.0,                   # Polygon radius
+    sides=6,                       # Number of sides (triangle=3, square=4, etc.)
+    color=[0.0, 0.0, 1.0, 1.0],   # Blue color [r,g,b,a]
+    width=3.0,                     # Line width (optional)
+    sorting=0.0,                   # Drawing order (optional)
+    layer=0.0,                     # Layer depth (optional)
+    rotation_deg=45.0              # Rotation in degrees (optional)
+)
+
+# Draw a rectangle (outline or filled)
+draw.rect(
+    p0=(100, 100),                 # First corner (x, y) or (x, y, z)
+    p1=(200, 200),                 # Opposite corner (x, y) or (x, y, z)
+    color=[1.0, 1.0, 0.0, 1.0],   # Yellow color [r,g,b,a]
+    sorting=0.0,                   # Drawing order (optional)
+    layer=0.0,                     # Layer depth (optional)
+    filled=False,                  # True for filled, False for outline
+    fill_axis="x"                  # Fill direction: "x" or "y" (for filled=True)
+)
+
+# Draw a rectangle outline (alternative method)
+draw.rect_outline(
+    p0=(300, 300),                 # First corner (x, y) or (x, y, z)
+    p1=(400, 400),                 # Opposite corner (x, y) or (x, y, z)
+    color=[1.0, 0.0, 1.0, 1.0],   # Magenta color [r,g,b,a]
+    width=2.0,                     # Line width (optional)
+    sorting=0.0,                   # Drawing order (optional)
+    layer=0.0                      # Layer depth (optional)
+)
+```
+
+#### Drawing API Examples
+
+```python
+# Example 1: Draw a trajectory path
+def draw_trajectory(sfs, points, color=[1.0, 0.5, 0.0, 1.0]):
+    """Draw a trajectory path connecting multiple points"""
+    draw = sfs.draw_api
+    for i in range(len(points) - 1):
+        draw.line(
+            start=points[i],
+            end=points[i + 1],
+            color=color,
+            width=2.0
+        )
+
+# Example 2: Draw a landing zone indicator
+def draw_landing_zone(sfs, center_x, center_y, radius=100):
+    """Draw a circular landing zone indicator"""
+    draw = sfs.draw_api
+    # Outer circle (warning zone)
+    draw.circle(
+        center=(center_x, center_y),
+        radius=radius,
+        color=[1.0, 0.0, 0.0, 0.5],  # Semi-transparent red
+        resolution=32
+    )
+    # Inner circle (safe zone)
+    draw.circle(
+        center=(center_x, center_y),
+        radius=radius * 0.5,
+        color=[0.0, 1.0, 0.0, 0.5],  # Semi-transparent green
+        resolution=32
+    )
+
+# Example 3: Draw a grid for reference
+def draw_reference_grid(sfs, center_x, center_y, size=1000, spacing=100):
+    """Draw a reference grid around a center point"""
+    draw = sfs.draw_api
+    half_size = size // 2
+    
+    # Vertical lines
+    for x in range(center_x - half_size, center_x + half_size + 1, spacing):
+        draw.line(
+            start=(x, center_y - half_size),
+            end=(x, center_y + half_size),
+            color=[0.5, 0.5, 0.5, 0.3],  # Semi-transparent gray
+            width=1.0
+        )
+    
+    # Horizontal lines
+    for y in range(center_y - half_size, center_y + half_size + 1, spacing):
+        draw.line(
+            start=(center_x - half_size, y),
+            end=(center_x + half_size, y),
+            color=[0.5, 0.5, 0.5, 0.3],  # Semi-transparent gray
+            width=1.0
+        )
+
+# Example 4: Draw orbital indicators
+def draw_orbit_indicators(sfs, planet_center, orbit_radius):
+    """Draw orbital indicators around a planet"""
+    draw = sfs.draw_api
+    
+    # Main orbit circle
+    draw.circle(
+        center=planet_center,
+        radius=orbit_radius,
+        color=[0.0, 0.8, 1.0, 0.8],  # Cyan orbit line
+        resolution=64,
+        width=2.0
+    )
+    
+    # Draw cardinal direction markers
+    directions = [
+        (orbit_radius, 0),      # East
+        (-orbit_radius, 0),     # West
+        (0, orbit_radius),      # North
+        (0, -orbit_radius)      # South
+    ]
+    
+    for dx, dy in directions:
+        x, y = planet_center[0] + dx, planet_center[1] + dy
+        draw.circle(
+            center=(x, y),
+            radius=10,
+            color=[1.0, 1.0, 0.0, 1.0],  # Yellow markers
+            resolution=16
+        )
+
+# Example 5: Clear and redraw based on rocket position
+def update_rocket_trail(sfs):
+    """Update rocket trail visualization"""
+    draw = sfs.draw_api
+    
+    # Clear previous trail
+    draw.clear()
+    
+    # Get current rocket position
+    pos = sfs.values_api.rocket_position()
+    x, y = pos["x"], pos["y"]
+    
+    # Draw current position marker
+    draw.circle(
+        center=(x, y),
+        radius=20,
+        color=[1.0, 0.0, 0.0, 1.0],  # Red current position
+        resolution=16
+    )
+    
+    # Draw velocity vector
+    velocity = sfs.calc_api.rocket_velocity_components()
+    vx, vy = velocity["vx"], velocity["vy"]
+    
+    # Scale velocity vector for visualization
+    scale = 10.0
+    end_x, end_y = x + vx * scale, y + vy * scale
+    
+    draw.line(
+        start=(x, y),
+        end=(end_x, end_y),
+        color=[0.0, 1.0, 0.0, 1.0],  # Green velocity vector
+        width=3.0
+    )
+```
+
+#### Drawing API Notes
+
+- **Coordinates**: All coordinates are in world coordinates (meters), not screen pixels
+- **Colors**: Use RGBA format with values from 0.0 to 1.0 (e.g., `[1.0, 0.0, 0.0, 1.0]` for red)
+- **Persistence**: Drawn objects remain visible until `clear()` is called
+- **Performance**: Use appropriate `resolution` values for circles (higher = smoother but more expensive)
+- **Layering**: Use `sorting` and `layer` parameters to control drawing order and depth
+- **3D Support**: Most functions accept 3D coordinates `(x, y, z)`, but circles are 2D only
+- **Filled Shapes**: The `rect()` function supports basic filling using thick lines
+
 
 ## Configuration
 
@@ -333,6 +540,6 @@ sfs.rotate("Prograde", rocket="Rocket2")
 altitude = sfs.values_api.rocket_altitude(rocket="Rocket1")
 ```
 
-
+The Silkscreen font used in this library is copyrighted by The Silkscreen Project Authors in 2001. The font is licensed under the SIL Open Font License 1.1, details can be found at: https://openfontlicense.org
 Server download link [SFSControl](https://github.com/SFSPlayer-sys/SFSControl).
 Example script link [Scripts](https://github.com/SFSPlayer-sys/SFSControl-_-Scripts ).

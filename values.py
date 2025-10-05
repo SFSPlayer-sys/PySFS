@@ -30,10 +30,6 @@ class ValuesAPI:
         self.info = info
 
     def rocket_name(self, rocket: Optional[Union[int, str]] = None) -> Optional[str]:
-        """
-        火箭名称
-        优先来源：/rocket_sim.name；若无则 /rocket.rocketName
-        """
         data = self.info.rocket_sim(rocket)
         if isinstance(data, dict) and "name" in data and data["name"] is not None:
             return str(data["name"])
@@ -43,20 +39,12 @@ class ValuesAPI:
         return None
 
     def rocket_id(self, rocket: Optional[Union[int, str]] = None) -> Optional[int]:
-        """
-        火箭 ID（在场景列表中的序号）
-        来源：/rocket_sim.id
-        """
         data = self.info.rocket_sim(rocket)
         if isinstance(data, dict):
             return _as_int(data.get("id"))
         return None
 
     def rocket_altitude(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
-        """
-        指定火箭高度（离地高度）。
-        优先：/rocket_sim.height；回退：/rocket.height（Info 中有 height 时）
-        """
         data = self.info.rocket_sim(rocket)
         if isinstance(data, dict) and "height" in data:
             v = _as_float(data["height"])
@@ -68,10 +56,6 @@ class ValuesAPI:
         return None
 
     def rocket_position(self, rocket: Optional[Union[int, str]] = None) -> Optional[Dict[str, float]]:
-        """
-        指定火箭二维位置（x,y）
-        来源：/rocket.location.position
-        """
         data = self.info.rocket_save(rocket)
         if isinstance(data, dict):
             location = data.get("location")
@@ -82,10 +66,6 @@ class ValuesAPI:
         return None
 
     def rocket_rotation(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
-        """
-        指定火箭旋转角度（度）
-        来源：/rocket_sim.rotation；回退 /rocket.rotation
-        """
         data = self.info.rocket_sim(rocket)
         if isinstance(data, dict) and "rotation" in data:
             v = _as_float(data["rotation"])
@@ -97,10 +77,6 @@ class ValuesAPI:
         return None
 
     def rocket_longitude(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
-        """
-        当前火箭行星中心经度（度，范围 0~360）。
-        直接使用 /rocket.location.position.AngleDegrees
-        """
         r = self.info.rocket_save(rocket)
         try:
             pos = r.get("location", {}).get("position", {}) if isinstance(r, dict) else {}
@@ -117,20 +93,12 @@ class ValuesAPI:
     
 
     def rocket_angular_velocity(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
-        """
-        指定火箭角速度
-        来源：/rocket_sim.angularVelocity
-        """
         data = self.info.rocket_sim(rocket)
         if isinstance(data, dict):
             return _as_float(data.get("angularVelocity"))
         return None
 
     def rocket_throttle(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
-        """
-        指定火箭节流阀值（0~1）
-        来源：/rocket_sim.throttle；回退 /rocket.throttlePercent
-        """
         data = self.info.rocket_sim(rocket)
         if isinstance(data, dict) and "throttle" in data:
             v = _as_float(data["throttle"])
@@ -142,10 +110,6 @@ class ValuesAPI:
         return None
 
     def rocket_rcs_on(self, rocket: Optional[Union[int, str]] = None) -> Optional[bool]:
-        """
-        指定火箭 RCS 开关状态
-        来源：/rocket_sim.rcs；回退 /rocket.RCS
-        """
         data = self.info.rocket_sim(rocket)
         if isinstance(data, dict) and "rcs" in data:
             return _as_bool(data["rcs"])
@@ -155,10 +119,6 @@ class ValuesAPI:
         return None
 
     def rocket_orbit(self, rocket: Optional[Union[int, str]] = None) -> Optional[Dict[str, Any]]:
-        """
-        指定火箭轨道要素（apoapsis, periapsis, period, trueAnomaly）
-        来源：/rocket_sim.orbit
-        """
         data = self.info.rocket_sim(rocket)
         if isinstance(data, dict) and isinstance(data.get("orbit"), dict):
             return data["orbit"]
@@ -181,10 +141,6 @@ class ValuesAPI:
         return _as_float(o.get("trueAnomaly")) if isinstance(o, dict) else None
 
     def rocket_parent_planet_code(self, rocket: Optional[Union[int, str]] = None) -> Optional[str]:
-        """
-        指定火箭当前所在的引力中心代号
-        来源：/rocket_sim.parentPlanetCode
-        """
         data = self.info.rocket_sim(rocket)
         if isinstance(data, dict) and data.get("parentPlanetCode") is not None:
             return str(data["parentPlanetCode"])
@@ -322,24 +278,14 @@ class ValuesAPI:
             return str(data["version"])
         return None
 
-    def sfscontrol_build_date(self) -> Optional[str]:
+    def sfscontrol_name(self) -> Optional[str]:
         """
-        获取 SFSControl 构建日期
-        来源：/version.buildDate
-        """
-        data = self.info.version()
-        if isinstance(data, dict) and "buildDate" in data:
-            return str(data["buildDate"])
-        return None
-
-    def sfscontrol_api_version(self) -> Optional[str]:
-        """
-        获取 SFSControl API 版本
-        来源：/version.apiVersion
+        获取 SFSControl 名称
+        来源：/version.name
         """
         data = self.info.version()
-        if isinstance(data, dict) and "apiVersion" in data:
-            return str(data["apiVersion"])
+        if isinstance(data, dict) and "name" in data:
+            return str(data["name"])
         return None
 
     def sfscontrol_full_info(self) -> Optional[Dict[str, Any]]:
@@ -348,3 +294,21 @@ class ValuesAPI:
         来源：/version
         """
         return self.info.version()
+
+    def part_temperatures(self, rocket: Optional[Union[int, str]] = None) -> Optional[List[Dict[str, float]]]:
+        """
+        获取部件温度列表（id 与 temperature）。
+        来源：/rocket_sim.partTemperatures（服务端由 GetRocketInfo 填充）
+        返回格式：[{"id": int, "temperature": float}, ...]，若无数据返回 None。
+        """
+        data = self.info.rocket_sim(rocket)
+        if isinstance(data, dict) and isinstance(data.get("partTemperatures"), list):
+            out: List[Dict[str, float]] = []
+            for item in data["partTemperatures"]:
+                if isinstance(item, dict) and "id" in item and "temperature" in item:
+                    pid = _as_int(item["id"])
+                    temp = _as_float(item["temperature"])
+                    if pid is not None and temp is not None:
+                        out.append({"id": pid, "temperature": temp})
+            return out
+        return None

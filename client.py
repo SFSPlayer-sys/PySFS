@@ -8,6 +8,7 @@ from .control import ControlAPI
 from .info import InfoAPI
 from .values import ValuesAPI
 from .calc import CalcAPI
+from .draw import DrawAPI
 
 
 class SFSClient:
@@ -35,6 +36,7 @@ class SFSClient:
         self.info_api = InfoAPI(self.http)
         self.values_api = ValuesAPI(self.info_api)
         self.calc_api = CalcAPI(self.info_api)
+        self.draw_api = DrawAPI(self.http)
 
     @property
     def host(self) -> str:
