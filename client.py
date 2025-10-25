@@ -37,6 +37,11 @@ class SFSClient:
         self.values_api = ValuesAPI(self.info_api)
         self.calc_api = CalcAPI(self.info_api)
         self.draw_api = DrawAPI(self.http)
+        # 预热一次版本（不强制，首次调用时也会检查）
+        try:
+            _ = self.info_api.version()
+        except Exception:
+            pass
 
     @property
     def host(self) -> str:

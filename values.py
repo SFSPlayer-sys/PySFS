@@ -28,6 +28,37 @@ def _as_bool(x: Any) -> Optional[bool]:
 class ValuesAPI:
     def __init__(self, info: InfoAPI) -> None:
         self.info = info
+        self._version = None
+
+    def _get_version(self) -> Optional[str]:
+        """获取SFSControl版本号"""
+        if self._version is None:
+            version_data = self.info.version()
+            if isinstance(version_data, dict) and "version" in version_data:
+                self._version = str(version_data["version"])
+            else:
+                self._version = "0.0"
+        return self._version
+
+    def _check_version(self, required_version: str) -> bool:
+        """检查版本是否满足要求"""
+        current_version = self._get_version()
+        if not current_version:
+            return False
+        
+        try:
+            current_parts = [int(x) for x in current_version.split('.')]
+            required_parts = [int(x) for x in required_version.split('.')]
+            
+            # 补齐版本号长度
+            while len(current_parts) < len(required_parts):
+                current_parts.append(0)
+            while len(required_parts) < len(current_parts):
+                required_parts.append(0)
+            
+            return current_parts >= required_parts
+        except:
+            return False
 
     def rocket_name(self, rocket: Optional[Union[int, str]] = None) -> Optional[str]:
         data = self.info.rocket_sim(rocket)
@@ -86,7 +117,7 @@ class ValuesAPI:
                 if ang < 0:
                     ang += 360.0
                 return ang
-        except Exception:
+        except Exception as e:
             pass
         return None
 
@@ -214,6 +245,212 @@ class ValuesAPI:
     def other_inertia_info(self, rocket: Optional[Union[int, str]] = None) -> Optional[Dict[str, Any]]:
         data = self.info.other(rocket)
         return data.get("inertia") if isinstance(data, dict) else None
+    
+    def current_planet_code(self, rocket: Optional[Union[int, str]] = None) -> Optional[str]:
+        data = self.info.rocket_sim(rocket)
+        return data.get("planetCode") if isinstance(data, dict) else None
+
+    def other_gravity_info(self, rocket: Optional[Union[int, str]] = None) -> Optional[Dict[str, float]]:
+        """
+        获取火箭当前受到的重力信息
+        返回格式：{"gravityX": float, "gravityY": float, "gravityMagnitude": float}
+        需要SFSControl版本 >= 1.3
+        """
+        if not self._check_version("1.3"):
+            return None
+        data = self.info.other(rocket)
+        if isinstance(data, dict) and isinstance(data.get("gravity"), dict):
+            gravity = data["gravity"]
+            return {
+                "gravityX": _as_float(gravity.get("gravityX")) or 0.0,
+                "gravityY": _as_float(gravity.get("gravityY")) or 0.0,
+                "gravityMagnitude": _as_float(gravity.get("gravityMagnitude")) or 0.0
+            }
+        return None
+
+    def other_gravity_x(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
+        """获取火箭当前受到的X方向重力分量"""
+        gravity_info = self.other_gravity_info(rocket)
+        return gravity_info.get("gravityX") if gravity_info else None
+
+    def other_gravity_y(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
+        """获取火箭当前受到的Y方向重力分量"""
+        gravity_info = self.other_gravity_info(rocket)
+        return gravity_info.get("gravityY") if gravity_info else None
+
+    def other_gravity_magnitude(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
+        """获取火箭当前受到的总重力大小"""
+        gravity_info = self.other_gravity_info(rocket)
+        return gravity_info.get("gravityMagnitude") if gravity_info else None
+    
+    def other_landing_point(self, rocket: Optional[Union[int, str]] = None) -> Optional[Dict[str, Any]]:
+        """
+        获取火箭的落点预测信息（修正嵌套路径）
+        返回包含落点坐标、角度、高度等信息的字典
+        """
+        if not self._check_version("1.3"):
+             return None
+        data = self.info.other(rocket)
+        if isinstance(data, dict):
+            # 解析到内层 landingPoint
+            outer_landing = data.get("landingPoint", {})  # 外层 landingPoint
+            if isinstance(outer_landing, dict):
+                inner_landing = outer_landing.get("landingPoint", {})  # 内层 landingPoint
+                if inner_landing:  # 确保内层数据存在
+                    return inner_landing
+        return None
+
+    def other_landing_point_position(self, rocket: Optional[Union[int, str]] = None) -> Optional[Dict[str, float]]:
+        """获取落点的2D坐标"""
+        landing_point = self.other_landing_point(rocket)
+        if isinstance(landing_point, dict) and "x" in landing_point and "y" in landing_point:
+            return {
+                "x": _as_float(landing_point.get("x")) or 0.0,
+                "y": _as_float(landing_point.get("y")) or 0.0
+            }
+        return None
+
+    def other_landing_point_angle(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
+        """获取落点相对于星球中心的角度（度数）"""
+        landing_point = self.other_landing_point(rocket)
+        return _as_float(landing_point.get("angle")) if isinstance(landing_point, dict) else None
+
+    def other_landing_point_height(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
+        """获取落点距离星球表面的高度"""
+        landing_point = self.other_landing_point(rocket)
+        return _as_float(landing_point.get("height")) if isinstance(landing_point, dict) else None
+
+    def other_landing_point_radius(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
+        """获取落点到星球中心的距离"""
+        landing_point = self.other_landing_point(rocket)
+        return _as_float(landing_point.get("radius")) if isinstance(landing_point, dict) else None
+
+    def other_landing_point_planet(self, rocket: Optional[Union[int, str]] = None) -> Optional[str]:
+        """获取落点所在的星球代码名"""
+        landing_point = self.other_landing_point(rocket)
+        if isinstance(landing_point, dict) and "planet" in landing_point:
+            return str(landing_point["planet"])
+        return None
+
+    def other_landing_point_success(self, rocket: Optional[Union[int, str]] = None) -> Optional[bool]:
+        """检查落点计算是否成功"""
+        landing_point = self.other_landing_point(rocket)
+        return _as_bool(landing_point.get("success")) if isinstance(landing_point, dict) else None
+
+    def other_landing_point_steps(self, rocket: Optional[Union[int, str]] = None) -> Optional[int]:
+        """获取落点计算使用的仿真步数"""
+        landing_point = self.other_landing_point(rocket)
+        return _as_int(landing_point.get("steps")) if isinstance(landing_point, dict) else None
+
+    def other_fuel_bar_groups(self, rocket: Optional[Union[int, str]] = None) -> Optional[List[Dict[str, Any]]]:
+        """
+        获取燃料组信息
+        返回格式：[{"type": str, "current": float, "max": float, "percent": float}, ...]
+        """
+        data = self.info.other(rocket)
+        if isinstance(data, dict) and isinstance(data.get("fuelBarGroups"), list):
+            return data["fuelBarGroups"]
+        return None
+
+    def other_mission_log(self, rocket: Optional[Union[int, str]] = None) -> Optional[List[Dict[str, Any]]]:
+        """
+        获取任务日志
+        返回格式：[{"text": str, "reward": Any, "logId": str}, ...]
+        """
+        mission_data = self.info.mission()
+        if isinstance(mission_data, dict) and isinstance(mission_data.get("missionLog"), list):
+            return mission_data["missionLog"]
+        return None
+
+    def other_console_log(self, max_lines: int = 150) -> Optional[List[str]]:
+        """
+        获取游戏控制台日志
+        参数：
+        - max_lines: 最大行数，默认150
+        返回：日志行列表
+        """
+        log_data = self.info.debug_log()
+        if isinstance(log_data, dict) and isinstance(log_data.get("log"), list):
+            return log_data["log"]
+        return None
+
+    def other_quicksave_names(self, rocket: Optional[Union[int, str]] = None) -> Optional[List[str]]:
+        """
+        获取快速保存名称列表
+        返回：快速保存名称列表
+        """
+        quicksaves = self.other_quicksaves(rocket)
+        if isinstance(quicksaves, list):
+            names = []
+            for qs in quicksaves:
+                if isinstance(qs, dict) and "name" in qs:
+                    names.append(str(qs["name"]))
+            return names
+        return None
+
+    def other_quicksave_times(self, rocket: Optional[Union[int, str]] = None) -> Optional[List[str]]:
+        """
+        获取快速保存时间列表
+        返回：快速保存时间列表（ISO格式字符串）
+        """
+        quicksaves = self.other_quicksaves(rocket)
+        if isinstance(quicksaves, list):
+            times = []
+            for qs in quicksaves:
+                if isinstance(qs, dict) and "time" in qs:
+                    times.append(str(qs["time"]))
+            return times
+        return None
+
+    def other_nav_target_type(self, rocket: Optional[Union[int, str]] = None) -> Optional[str]:
+        """
+        获取导航目标类型
+        返回：目标类型（"planet"或"rocket"）
+        """
+        nav_target = self.other_nav_target(rocket)
+        if isinstance(nav_target, dict) and "type" in nav_target:
+            return str(nav_target["type"])
+        return None
+
+    def other_nav_target_name(self, rocket: Optional[Union[int, str]] = None) -> Optional[str]:
+        """
+        获取导航目标名称
+        返回：目标名称
+        """
+        nav_target = self.other_nav_target(rocket)
+        if isinstance(nav_target, dict) and "name" in nav_target:
+            return str(nav_target["name"])
+        return None
+
+    def other_nav_target_code_name(self, rocket: Optional[Union[int, str]] = None) -> Optional[str]:
+        """
+        获取导航目标代码名
+        返回：目标代码名
+        """
+        nav_target = self.other_nav_target(rocket)
+        if isinstance(nav_target, dict) and "codeName" in nav_target:
+            return str(nav_target["codeName"])
+        return None
+
+    def other_nav_target_id(self, rocket: Optional[Union[int, str]] = None) -> Optional[int]:
+        """
+        获取导航目标ID（如果是火箭）
+        返回：目标ID
+        """
+        nav_target = self.other_nav_target(rocket)
+        if isinstance(nav_target, dict) and "id" in nav_target:
+            return _as_int(nav_target["id"])
+        return None
+
+    def other_nav_target_soi_planet(self, rocket: Optional[Union[int, str]] = None) -> Optional[str]:
+        """
+        获取导航目标所在的星球（如果是火箭）
+        返回：星球名称
+        """
+        nav_target = self.other_nav_target(rocket)
+        if isinstance(nav_target, dict) and "soiPlanet" in nav_target:
+            return str(nav_target["soiPlanet"])
+        return None
 
     def planet_radius(self, codename: Optional[str] = None) -> Optional[float]:
         data = self.info.planet(codename)
@@ -312,3 +549,140 @@ class ValuesAPI:
                         out.append({"id": pid, "temperature": temp})
             return out
         return None
+
+    def heated_parts_list(self, rocket: Optional[Union[int, str]] = None, min_temperature: float = 0.0) -> Optional[List[Dict[str, Any]]]:
+        """
+        获取受热部件列表，包含ID、名称和温度
+        参数：
+        - rocket: 火箭ID或名称，None表示当前火箭
+        - min_temperature: 最小温度阈值，只返回温度高于此值的部件
+        返回格式：[{"id": int, "name": str, "temperature": float}, ...]，若无数据返回 None
+        """
+        # 获取部件温度数据
+        temp_data = self.part_temperatures(rocket)
+        if not temp_data:
+            return None
+            
+        # 获取部件列表数据
+        parts_list = self.info.parts_list(rocket)
+        if not parts_list:
+            return None
+            
+        # 创建部件ID到名称的映射
+        part_id_to_name = {}
+        for part in parts_list:
+            if isinstance(part, dict) and "id" in part and "name" in part:
+                part_id = _as_int(part["id"])
+                part_name = part.get("name", "Unknown")
+                if part_id is not None:
+                    part_id_to_name[part_id] = part_name
+        
+        # 合并温度数据和部件信息
+        heated_parts = []
+        for temp_item in temp_data:
+            if isinstance(temp_item, dict) and "id" in temp_item and "temperature" in temp_item:
+                part_id = _as_int(temp_item["id"])
+                temperature = _as_float(temp_item["temperature"])
+                
+                if part_id is not None and temperature is not None and temperature >= min_temperature:
+                    part_name = part_id_to_name.get(part_id, f"Part_{part_id}")
+                    heated_parts.append({
+                        "id": part_id,
+                        "name": part_name,
+                        "temperature": temperature
+                    })
+        
+        return heated_parts if heated_parts else None
+
+    def part_temperature_by_id(self, part_id: int, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
+        """
+        根据部件ID获取特定部件的温度
+        参数：
+        - part_id: 部件ID
+        - rocket: 火箭ID或名称，None表示当前火箭
+        返回：部件温度，若未找到返回None
+        """
+        temp_data = self.part_temperatures(rocket)
+        if not temp_data:
+            return None
+            
+        for item in temp_data:
+            if isinstance(item, dict) and "id" in item and "temperature" in item:
+                if _as_int(item["id"]) == part_id:
+                    return _as_float(item["temperature"])
+        return None
+
+    def part_name_by_id(self, part_id: int, rocket: Optional[Union[int, str]] = None) -> Optional[str]:
+        """
+        根据部件ID获取部件名称
+        参数：
+        - part_id: 部件ID
+        - rocket: 火箭ID或名称，None表示当前火箭
+        返回：部件名称，若未找到返回None
+        """
+        parts_list = self.info.parts_list(rocket)
+        if not parts_list:
+            return None
+            
+        for part in parts_list:
+            if isinstance(part, dict) and "id" in part and "name" in part:
+                if _as_int(part["id"]) == part_id:
+                    return part.get("name", "Unknown")
+        return None
+
+    def world_rocket_count(self) -> Optional[int]:
+        """
+        获取世界内火箭总数
+        返回：火箭数量
+        """
+        rockets = self.info.rockets()
+        if isinstance(rockets, list):
+            return len(rockets)
+        return None
+
+    def rocket_parts_count(self, rocket: Optional[Union[int, str]] = None) -> Optional[int]:
+        """
+        获取指定火箭的部件数量
+        参数：
+        - rocket: 火箭ID或名称，None表示当前火箭
+        返回：部件数量
+        """
+        parts_list = self.info.parts_list(rocket)
+        if isinstance(parts_list, list):
+            return len(parts_list)
+        return None
+
+    def rocket_parts_names(self, rocket: Optional[Union[int, str]] = None) -> Optional[List[str]]:
+        """
+        获取指定火箭的部件名称列表
+        参数：
+        - rocket: 火箭ID或名称，None表示当前火箭
+        返回：部件名称列表
+        """
+        parts_list = self.info.parts_list(rocket)
+        if not parts_list:
+            return None
+        
+        names = []
+        for part in parts_list:
+            if isinstance(part, dict) and "name" in part:
+                names.append(str(part["name"]))
+        return names if names else None
+
+    def rocket_velocity_x(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
+        """
+        获取火箭x速度
+        """
+        data = self.info.rocket_save(rocket)
+        if isinstance(data, dict) and "location" in data and "velocity" in data["location"]:
+            return _as_float(data["location"]["velocity"]["x"])
+        return None
+
+    def rocket_velocity_y(self, rocket: Optional[Union[int, str]] = None) -> Optional[float]:
+        """
+        获取火箭y速度
+        """
+        data = self.info.rocket_save(rocket)
+        if isinstance(data, dict) and "location" in data and "velocity" in data["location"]:
+            return _as_float(data["location"]["velocity"]["y"])
+        return None 

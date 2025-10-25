@@ -91,3 +91,23 @@ class InfoAPI:
         对应：GET /version
         """
         return self.http.get_json("/version")
+
+    def parts_info(self, rocket: Optional[Union[int, str]] = None) -> Dict[str, Any]:
+        """
+        获取火箭的部件信息
+        对应：GET /rocket_sim?rocketIdOrName=xxx 中的parts字段
+        """
+        data = self.rocket_sim(rocket)
+        if isinstance(data, dict) and "parts" in data:
+            return data["parts"]
+        return {}
+
+    def parts_list(self, rocket: Optional[Union[int, str]] = None) -> List[Dict[str, Any]]:
+        """
+        获取火箭的部件列表，包含ID和名称
+        返回格式：[{"id": int, "name": str, ...}, ...]
+        """
+        parts_info = self.parts_info(rocket)
+        if isinstance(parts_info, list):
+            return parts_info
+        return []

@@ -7,6 +7,8 @@ A Python library for controlling Spaceflight Simulator (SFS) through the SFSCont
 - **Complete SFS Control**: Control rockets, staging, throttle, rotation, and more
 - **Information Retrieval**: Get rocket status, orbital data, planet information
 - **Value Extraction**: Direct access to altitude, longitude, velocity, and other parameters  
+- **Gravity Information**: Real-time gravity vector data (X, Y components and magnitude)
+- **Landing Point Prediction**: Advanced trajectory simulation for impact point calculation
 - **Calculation Tools**: Built-in trajectory prediction, impact point calculation
 - **Multi-Rocket Support**: Control multiple rockets simultaneously
 - **Type Safety**: Full type annotations for better development experience
@@ -59,9 +61,22 @@ altitude = sfs.values_api.rocket_altitude()
 longitude = sfs.values_api.rocket_longitude()
 velocity = sfs.calc_api.rocket_velocity_magnitude()
 
+# Get velocity components
+vx = sfs.values_api.rocket_velocity_x()
+vy = sfs.values_api.rocket_velocity_y()
+
+# Get gravity information
+gravity = sfs.values_api.other_gravity_magnitude()
+
+# Get landing point prediction
+landing_angle = sfs.values_api.other_landing_point_angle()
+
 print(f"Altitude: {altitude}m")
 print(f"Longitude: {longitude}°")
 print(f"Velocity: {velocity}m/s")
+print(f"Velocity X: {vx}m/s, Y: {vy}m/s")
+print(f"Gravity: {gravity}m/s²")
+print(f"Landing angle: {landing_angle}°")
 
 # Take screenshot
 screenshot_data = sfs.screenshot()  # Returns bytes
@@ -98,7 +113,8 @@ print(lon)
 # Basic Control
 sfs.set_throttle(0.75)                    # Set throttle (0.0-1.0)
 sfs.set_main_engine_on(True)              # Engine on/off
-sfs.set_rcs(True)                         # RCS on/off
+sfs.set_rcs_on(True)                      # RCS on/off
+sfs.set_rcs(True)                         # RCS on/off (alternative method)
 sfs.stage()                               # Next stage
 sfs.use_part(part_id)                     # Activate specific part
 
@@ -113,6 +129,7 @@ sfs.rotate("Prograde", 180.0)             # Retrograde (prograde + 180°)
 sfs.stop_rotate()                         # Stop rotation
 sfs.set_rotation(45.0)                    # Set rotation angle
 sfs.rcs_thrust("up", 2.0)                 # RCS thrust in direction for seconds
+sfs.rcs_thrust("left", 0.5, "Rocket1")    # RCS thrust for specific rocket
 
 # Navigation & Targets
 sfs.set_target("Moon")                    # Set target
@@ -190,6 +207,10 @@ other = sfs.info_api.other()                   # Miscellaneous info
 mission = sfs.info_api.mission()               # Mission info
 debug_log = sfs.info_api.debug_log()           # Debug log
 version = sfs.info_api.version()               # Mod version (returns {"name": "SFSControl", "version": "1.2"})
+
+# Parts Information
+parts_info = sfs.info_api.parts_info()         # Parts information dict
+parts_list = sfs.info_api.parts_list()         # Parts list with IDs and names
 ```
 
 ### Direct Value Access
@@ -202,9 +223,14 @@ rocket_id = sfs.values_api.rocket_id()               # Rocket ID
 # Position & Motion
 altitude = sfs.values_api.rocket_altitude()          # Altitude above surface
 longitude = sfs.values_api.rocket_longitude()        # Longitude (0-360°)
+longitude = sfs.values_api.rocket_longitude("Rocket1")  # Longitude for specific rocket
 position = sfs.values_api.rocket_position()          # Position {x, y}
 rotation = sfs.values_api.rocket_rotation()          # Rotation angle
 angular_velocity = sfs.values_api.rocket_angular_velocity()  # Angular velocity
+
+# Velocity Components
+velocity_x = sfs.values_api.rocket_velocity_x()      # X velocity component
+velocity_y = sfs.values_api.rocket_velocity_y()      # Y velocity component
 
 # Control Status
 throttle = sfs.values_api.rocket_throttle()          # Throttle (0.0-1.0)
@@ -237,6 +263,21 @@ transfer_window_delta_v = sfs.values_api.other_transfer_window_delta_v()  # Tran
 mission_status = sfs.values_api.other_mission_status()        # Mission status
 inertia_info = sfs.values_api.other_inertia_info()           # Inertia information
 
+# Gravity Information (SFSControl >= 1.3)
+gravity_info = sfs.values_api.other_gravity_info()   # Complete gravity info {gravityX, gravityY, gravityMagnitude}
+gravity_x = sfs.values_api.other_gravity_x()         # X gravity component
+gravity_y = sfs.values_api.other_gravity_y()         # Y gravity component
+gravity_magnitude = sfs.values_api.other_gravity_magnitude()  # Total gravity magnitude
+
+# Landing Point Prediction
+landing_point = sfs.values_api.other_landing_point()  # Complete landing point info
+landing_angle = sfs.values_api.other_landing_point_angle()  # Landing point angle
+landing_height = sfs.values_api.other_landing_point_height()  # Landing point height
+landing_radius = sfs.values_api.other_landing_point_radius()  # Landing point radius
+landing_planet = sfs.values_api.other_landing_point_planet()  # Landing point planet
+landing_success = sfs.values_api.other_landing_point_success()  # Landing prediction success
+landing_steps = sfs.values_api.other_landing_point_steps()  # Landing prediction steps
+
 # Planet Properties
 planet_radius = sfs.values_api.planet_radius("Earth")        # Planet radius
 planet_gravity = sfs.values_api.planet_gravity("Earth")      # Surface gravity
@@ -253,9 +294,43 @@ planet_current_radius = sfs.values_api.planet_orbit_current_radius("Earth")  # C
 planet_current_velocity = sfs.values_api.planet_orbit_current_velocity("Earth")  # Current orbital velocity
 
 # Mod Information
-mod_version = sfs.values_api.sfscontrol_version()     # "1.2"
+mod_version = sfs.values_api.sfscontrol_version()     # "1.3"
 mod_name = sfs.values_api.sfscontrol_name()           # "SFSControl"
 mod_full_info = sfs.values_api.sfscontrol_full_info() # Full version info
+
+# Additional Rocket Information
+current_planet = sfs.values_api.current_planet_code()  # Current planet code
+world_rocket_count = sfs.values_api.world_rocket_count()  # Total rockets in world
+parts_count = sfs.values_api.rocket_parts_count()      # Number of parts
+parts_names = sfs.values_api.rocket_parts_names()      # List of part names
+
+# Part Temperature Information
+part_temps = sfs.values_api.part_temperatures()        # All part temperatures
+heated_parts = sfs.values_api.heated_parts_list(min_temperature=100.0)  # Parts above threshold
+part_temp = sfs.values_api.part_temperature_by_id(part_id=1)  # Specific part temperature
+part_name = sfs.values_api.part_name_by_id(part_id=1)  # Part name by ID
+
+# Fuel Information
+fuel_groups = sfs.values_api.other_fuel_bar_groups()   # Fuel group information
+
+# Mission and Logs
+mission_log = sfs.values_api.other_mission_log()       # Mission log entries
+console_log = sfs.values_api.other_console_log(max_lines=50)  # Console log lines
+
+# Quicksave Information
+quicksave_names = sfs.values_api.other_quicksave_names()  # Quicksave name list
+quicksave_times = sfs.values_api.other_quicksave_times()  # Quicksave time list
+
+# Navigation Target Details
+nav_type = sfs.values_api.other_nav_target_type()      # Target type ("planet" or "rocket")
+nav_name = sfs.values_api.other_nav_target_name()     # Target name
+nav_code = sfs.values_api.other_nav_target_code_name()  # Target code name
+nav_id = sfs.values_api.other_nav_target_id()         # Target ID (if rocket)
+nav_planet = sfs.values_api.other_nav_target_soi_planet()  # Target's planet
+
+# Landing Point Details
+landing_pos = sfs.values_api.other_landing_point_position()  # Landing point coordinates
+landing_steps = sfs.values_api.other_landing_point_steps()  # Calculation steps used
 ```
 
 ### Calculations
@@ -275,6 +350,10 @@ orbit_info = sfs.calc_api.rocket_orbit_info()                    # Complete orbi
 normal_angle = sfs.calc_api.rocket_normal_angle()                # Normal angle (degrees)
 position_angle = sfs.calc_api.rocket_position_angle()            # Position angle (degrees)
 angle_info = sfs.calc_api.rocket_angle_info()                    # Complete angle info
+
+# Comprehensive Information
+velocity_info = sfs.calc_api.rocket_velocity_info()              # Complete velocity info
+orbit_info = sfs.calc_api.rocket_orbit_info()                    # Complete orbital info
 
 # Trajectory Prediction
 impact_point = sfs.calc_api.impact_point(
@@ -352,132 +431,7 @@ draw.rect_outline(
     sorting=0.0,                   # Drawing order (optional)
     layer=0.0                      # Layer depth (optional)
 )
-```
 
-#### Drawing API Examples
-
-```python
-# Example 1: Draw a trajectory path
-def draw_trajectory(sfs, points, color=[1.0, 0.5, 0.0, 1.0]):
-    """Draw a trajectory path connecting multiple points"""
-    draw = sfs.draw_api
-    for i in range(len(points) - 1):
-        draw.line(
-            start=points[i],
-            end=points[i + 1],
-            color=color,
-            width=2.0
-        )
-
-# Example 2: Draw a landing zone indicator
-def draw_landing_zone(sfs, center_x, center_y, radius=100):
-    """Draw a circular landing zone indicator"""
-    draw = sfs.draw_api
-    # Outer circle (warning zone)
-    draw.circle(
-        center=(center_x, center_y),
-        radius=radius,
-        color=[1.0, 0.0, 0.0, 0.5],  # Semi-transparent red
-        resolution=32
-    )
-    # Inner circle (safe zone)
-    draw.circle(
-        center=(center_x, center_y),
-        radius=radius * 0.5,
-        color=[0.0, 1.0, 0.0, 0.5],  # Semi-transparent green
-        resolution=32
-    )
-
-# Example 3: Draw a grid for reference
-def draw_reference_grid(sfs, center_x, center_y, size=1000, spacing=100):
-    """Draw a reference grid around a center point"""
-    draw = sfs.draw_api
-    half_size = size // 2
-    
-    # Vertical lines
-    for x in range(center_x - half_size, center_x + half_size + 1, spacing):
-        draw.line(
-            start=(x, center_y - half_size),
-            end=(x, center_y + half_size),
-            color=[0.5, 0.5, 0.5, 0.3],  # Semi-transparent gray
-            width=1.0
-        )
-    
-    # Horizontal lines
-    for y in range(center_y - half_size, center_y + half_size + 1, spacing):
-        draw.line(
-            start=(center_x - half_size, y),
-            end=(center_x + half_size, y),
-            color=[0.5, 0.5, 0.5, 0.3],  # Semi-transparent gray
-            width=1.0
-        )
-
-# Example 4: Draw orbital indicators
-def draw_orbit_indicators(sfs, planet_center, orbit_radius):
-    """Draw orbital indicators around a planet"""
-    draw = sfs.draw_api
-    
-    # Main orbit circle
-    draw.circle(
-        center=planet_center,
-        radius=orbit_radius,
-        color=[0.0, 0.8, 1.0, 0.8],  # Cyan orbit line
-        resolution=64,
-        width=2.0
-    )
-    
-    # Draw cardinal direction markers
-    directions = [
-        (orbit_radius, 0),      # East
-        (-orbit_radius, 0),     # West
-        (0, orbit_radius),      # North
-        (0, -orbit_radius)      # South
-    ]
-    
-    for dx, dy in directions:
-        x, y = planet_center[0] + dx, planet_center[1] + dy
-        draw.circle(
-            center=(x, y),
-            radius=10,
-            color=[1.0, 1.0, 0.0, 1.0],  # Yellow markers
-            resolution=16
-        )
-
-# Example 5: Clear and redraw based on rocket position
-def update_rocket_trail(sfs):
-    """Update rocket trail visualization"""
-    draw = sfs.draw_api
-    
-    # Clear previous trail
-    draw.clear()
-    
-    # Get current rocket position
-    pos = sfs.values_api.rocket_position()
-    x, y = pos["x"], pos["y"]
-    
-    # Draw current position marker
-    draw.circle(
-        center=(x, y),
-        radius=20,
-        color=[1.0, 0.0, 0.0, 1.0],  # Red current position
-        resolution=16
-    )
-    
-    # Draw velocity vector
-    velocity = sfs.calc_api.rocket_velocity_components()
-    vx, vy = velocity["vx"], velocity["vy"]
-    
-    # Scale velocity vector for visualization
-    scale = 10.0
-    end_x, end_y = x + vx * scale, y + vy * scale
-    
-    draw.line(
-        start=(x, y),
-        end=(end_x, end_y),
-        color=[0.0, 1.0, 0.0, 1.0],  # Green velocity vector
-        width=3.0
-    )
-```
 
 #### Drawing API Notes
 
